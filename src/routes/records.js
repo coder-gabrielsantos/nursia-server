@@ -4,16 +4,160 @@ import { checkAdmin } from '../middleware/checkAdmin.js';
 
 const router = Router();
 
+/** Converte o payload “flat” do front para o formato do schema */
+function normalizePayload(p = {}) {
+    const cap = (s) => (s ? String(s).trim() : '');
+    const yesNo = (v) => (String(v).toLowerCase() === 'sim');
+
+    // Mapas pontuais
+    const sexo = p.sexo && ['F', 'M'].includes(p.sexo) ? p.sexo : undefined;
+
+    const informanteTipoMap = {
+        paciente: 'Paciente',
+        membro_familia: 'Membro da Família',
+        amigo: 'Amigo',
+        outros: 'Outros',
+    };
+
+    const etilismoFreqMap = {
+        social: 'Social',
+        todos_os_dias: 'Todos os dias',
+        '3x_semana': 'Três vezes por semana',
+        '>3x_semana': 'Mais que três vezes por semana',
+    };
+
+    const sonoMap = {
+        satisfeito: 'Satisfeito',
+        insatisfeito: 'Insatisfeito',
+    };
+
+    const recreacaoMap = {
+        '3x_semana': 'Três vezes/semana',
+        '>3x_semana': 'Mais de três vezes/semana',
+    };
+
+    const moradiaTipoMap = {
+        propria: 'Própria',
+        cedida: 'Cedida',
+        alugada: 'Alugada',
+    };
+
+    const out = {
+        // básicos
+        nome: cap(p.nome),
+        dataAtendimento: cap(p.dataAtendimento),
+
+        naturalidade: cap(p.naturalidade),
+        idade: p.idade != null ? Number(p.idade) : undefined,
+        sexo,
+        filhosQuantos: p.filhos != null ? Number(p.filhos) : undefined,
+        raca: cap(p.raca),
+        estadoCivil: cap(p.estadoCivil),
+        escolaridade: cap(p.escolaridade),
+        profissao: cap(p.profissao),
+        ocupacao: cap(p.ocupacao),
+        diagnosticoMedicoAtual: cap(p.diagnosticoMedicoAtual),
+
+        religiao: p.religiao
+            ? { nome: cap(p.religiao), praticante: false }
+            : undefined,
+
+        informante: p.informante
+            ? { tipo: informanteTipoMap[p.informante] || undefined, observacao: undefined }
+            : undefined,
+
+        hda: cap(p.hda),
+        hp: cap(p.hp),
+        medicamentosUsuais: cap(p.medicamentosUsuais),
+
+        internacaoAnterior: {
+            teve: String(p.internacaoAnterior || '').toLowerCase() === 'sim',
+            ondeQuando: cap(p.internacaoOndeQuando),
+            motivos: cap(p.internacaoMotivos),
+        },
+
+        historiaFamiliar: {
+            dm: !!p.hf_DM,
+            has: !!p.hf_HAS,
+            cardiopatias: !!p['hf_Cardiopatias'],
+            enxaqueca: !!p['hf_Enxaqueca'],
+            tbc: !!p['hf_TBC'],
+            ca: !!p['hf_CA'],
+        },
+
+        etilismo: {
+            frequencia: etilismoFreqMap[p.etilismoFrequencia] || undefined,
+            tipo: cap(p.etilismoTipo),
+            quantidade: cap(p.etilismoQuantidade),
+        },
+
+        tabagismo: {
+            tabagista: String(p.tabagista || '').toLowerCase() === 'sim',
+            cigarrosPorDia: p.cigarrosDia != null ? Number(p.cigarrosDia) : undefined,
+            exTabagistaHaQuantoTempo: cap(p.exTabagistaTempo),
+        },
+
+        cuidadoCorporal: {
+            higieneCorporalFrequenciaDia: cap(p.higieneCorporal),
+            higieneBucalFrequenciaDia: cap(p.higieneBucal),
+            usoProtese: String(p.protese || '').toLowerCase() === 'sim',
+        },
+
+        sonoRepousoConforto: {
+            satisfacao: sonoMap[p.sonoRepousoConforto] || undefined,
+        },
+
+        nutricaoHidratacao: {
+            alimentacao: {
+                ricaEmFrutas: p.alimentacaoTipo === 'frutas' || p.alimentacaoComposicao === 'fibras', // aproximação
+                ricaEmGordura: p.alimentacaoTipo === 'gordura',
+                ricaEmCarboidratos: p.alimentacaoTipo === 'carboidratos',
+                ricaEmFibras: p.alimentacaoComposicao === 'fibras',
+                ricaEmProteina: p.alimentacaoComposicao === 'proteina',
+                ricaEmLegumesEVerduras: p.alimentacaoComposicao === 'legumes_verduras',
+            },
+            hidratacao: {
+                aguaQuantidadeDia: cap(p.hidratacaoQuantidade),
+                sucoQuantidadeDia: undefined,
+            },
+        },
+
+        atividadeFisica: { pratica: String(p.atividadeFisica || '').toLowerCase() === 'sim' },
+        recreacao: {
+            frequencia: recreacaoMap[p.recreacaoFreq] || undefined,
+            duracao: cap(p.recreacaoDuracao),
+        },
+
+        moradia: {
+            tipo: moradiaTipoMap[p.moradia] || undefined,
+            energiaEletrica: yesNo(p.energiaEletrica),
+            aguaTratada: yesNo(p.aguaTratada),
+            coletaDeLixo: yesNo(p.coletaLixo),
+            quantosResidem: p.qtdResidem != null ? Number(p.qtdResidem) : undefined,
+            quantosTrabalham: p.qtdTrabalham != null ? Number(p.qtdTrabalham) : undefined,
+        },
+
+        // medidas/sinais
+        pesoKg: p.pesoKg != null ? Number(p.pesoKg) : undefined,
+        alturaCm: p.alturaCm != null ? Number(p.alturaCm) : undefined,
+        glicemiaCapilar: cap(p.glicemiaCapilar),
+        paSistolica: p.paSistolica != null ? Number(p.paSistolica) : undefined,
+        paDiastolica: p.paDiastolica != null ? Number(p.paDiastolica) : undefined,
+    };
+
+    // Limpa chaves undefined para evitar ruído
+    Object.keys(out).forEach((k) => (out[k] === undefined ? delete out[k] : null));
+    return out;
+}
+
 /**
  * GET /records
- * Acesso: Qualquer cliente com senha de acesso (checkAccess é aplicado na app)
+ * Acesso: checkAccess já aplicado na app
  */
 router.get('/', async (req, res) => {
     try {
         const { q } = req.query;
-        const filter = q
-            ? { patientName: { $regex: q, $options: 'i' } }
-            : {};
+        const filter = q ? { nome: { $regex: q, $options: 'i' } } : {};
         const records = await NursingRecord.find(filter).sort({ createdAt: -1 }).lean();
         res.json(records);
     } catch (err) {
@@ -27,12 +171,14 @@ router.get('/', async (req, res) => {
  */
 router.post('/', checkAdmin, async (req, res) => {
     try {
-        const payload = req.body || {};
-        // pequena validação
-        if (!payload.patientName || !payload.dataAtendimento) {
-            return res.status(400).json({ error: 'patientName and dataAtendimento are required' });
+        const normalized = normalizePayload(req.body || {});
+
+        // validações mínimas alinhadas ao schema
+        if (!normalized.nome || !normalized.dataAtendimento) {
+            return res.status(400).json({ error: 'nome e dataAtendimento são obrigatórios' });
         }
-        const created = await NursingRecord.create(payload);
+
+        const created = await NursingRecord.create(normalized);
         res.status(201).json(created);
     } catch (err) {
         res.status(500).json({ error: 'Failed to create record' });
@@ -42,6 +188,7 @@ router.post('/', checkAdmin, async (req, res) => {
 /**
  * PATCH /records/:id
  * Acesso: Somente ADMIN
+ * (Opcional: você pode também normalizar aqui, se receber campos “flat”)
  */
 router.patch('/:id', checkAdmin, async (req, res) => {
     try {
