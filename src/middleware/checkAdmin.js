@@ -8,7 +8,7 @@ function safeEqual(a, b) {
 }
 
 /**
- * Only allows requests that include the correct x-admin-key header
+ * Permite apenas se x-admin-key corresponder a ADMIN_KEY
  */
 export function checkAdmin(req, res, next) {
     const provided = req.header('x-admin-key');

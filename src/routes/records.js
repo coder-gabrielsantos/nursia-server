@@ -9,7 +9,6 @@ function normalizePayload(p = {}) {
     const cap = (s) => (s ? String(s).trim() : '');
     const yesNo = (v) => (String(v).toLowerCase() === 'sim');
 
-    // Mapas pontuais
     const sexo = p.sexo && ['F', 'M'].includes(p.sexo) ? p.sexo : undefined;
 
     const informanteTipoMap = {
@@ -26,24 +25,11 @@ function normalizePayload(p = {}) {
         '>3x_semana': 'Mais que três vezes por semana',
     };
 
-    const sonoMap = {
-        satisfeito: 'Satisfeito',
-        insatisfeito: 'Insatisfeito',
-    };
-
-    const recreacaoMap = {
-        '3x_semana': 'Três vezes/semana',
-        '>3x_semana': 'Mais de três vezes/semana',
-    };
-
-    const moradiaTipoMap = {
-        propria: 'Própria',
-        cedida: 'Cedida',
-        alugada: 'Alugada',
-    };
+    const sonoMap = { satisfeito: 'Satisfeito', insatisfeito: 'Insatisfeito' };
+    const recreacaoMap = { '3x_semana': 'Três vezes/semana', '>3x_semana': 'Mais de três vezes/semana' };
+    const moradiaTipoMap = { propria: 'Própria', cedida: 'Cedida', alugada: 'Alugada' };
 
     const out = {
-        // básicos
         nome: cap(p.nome),
         dataAtendimento: cap(p.dataAtendimento),
 
@@ -58,13 +44,9 @@ function normalizePayload(p = {}) {
         ocupacao: cap(p.ocupacao),
         diagnosticoMedicoAtual: cap(p.diagnosticoMedicoAtual),
 
-        religiao: p.religiao
-            ? { nome: cap(p.religiao), praticante: false }
-            : undefined,
+        religiao: p.religiao ? { nome: cap(p.religiao), praticante: false } : undefined,
 
-        informante: p.informante
-            ? { tipo: informanteTipoMap[p.informante] || undefined, observacao: undefined }
-            : undefined,
+        informante: p.informante ? { tipo: informanteTipoMap[p.informante] || undefined, observacao: undefined } : undefined,
 
         hda: cap(p.hda),
         hp: cap(p.hp),
@@ -103,13 +85,11 @@ function normalizePayload(p = {}) {
             usoProtese: String(p.protese || '').toLowerCase() === 'sim',
         },
 
-        sonoRepousoConforto: {
-            satisfacao: sonoMap[p.sonoRepousoConforto] || undefined,
-        },
+        sonoRepousoConforto: { satisfacao: sonoMap[p.sonoRepousoConforto] || undefined },
 
         nutricaoHidratacao: {
             alimentacao: {
-                ricaEmFrutas: p.alimentacaoTipo === 'frutas' || p.alimentacaoComposicao === 'fibras', // aproximação
+                ricaEmFrutas: p.alimentacaoTipo === 'frutas' || p.alimentacaoComposicao === 'fibras',
                 ricaEmGordura: p.alimentacaoTipo === 'gordura',
                 ricaEmCarboidratos: p.alimentacaoTipo === 'carboidratos',
                 ricaEmFibras: p.alimentacaoComposicao === 'fibras',
@@ -123,10 +103,7 @@ function normalizePayload(p = {}) {
         },
 
         atividadeFisica: { pratica: String(p.atividadeFisica || '').toLowerCase() === 'sim' },
-        recreacao: {
-            frequencia: recreacaoMap[p.recreacaoFreq] || undefined,
-            duracao: cap(p.recreacaoDuracao),
-        },
+        recreacao: { frequencia: recreacaoMap[p.recreacaoFreq] || undefined, duracao: cap(p.recreacaoDuracao) },
 
         moradia: {
             tipo: moradiaTipoMap[p.moradia] || undefined,
@@ -137,7 +114,6 @@ function normalizePayload(p = {}) {
             quantosTrabalham: p.qtdTrabalham != null ? Number(p.qtdTrabalham) : undefined,
         },
 
-        // medidas/sinais
         pesoKg: p.pesoKg != null ? Number(p.pesoKg) : undefined,
         alturaCm: p.alturaCm != null ? Number(p.alturaCm) : undefined,
         glicemiaCapilar: cap(p.glicemiaCapilar),
@@ -145,75 +121,65 @@ function normalizePayload(p = {}) {
         paDiastolica: p.paDiastolica != null ? Number(p.paDiastolica) : undefined,
     };
 
-    // Limpa chaves undefined para evitar ruído
     Object.keys(out).forEach((k) => (out[k] === undefined ? delete out[k] : null));
     return out;
 }
 
-/**
- * GET /records
- * Acesso: checkAccess já aplicado na app
- */
+/** GET /records — lista registros (requer checkAccess no app) */
 router.get('/', async (req, res) => {
     try {
         const { q } = req.query;
         const filter = q ? { nome: { $regex: q, $options: 'i' } } : {};
         const records = await NursingRecord.find(filter).sort({ createdAt: -1 }).lean();
         res.json(records);
-    } catch (err) {
+    } catch {
         res.status(500).json({ error: 'Failed to list records' });
     }
 });
 
-/**
- * POST /records
- * Acesso: Somente ADMIN (exige x-admin-key)
- */
+/** POST /records — somente admin (x-admin-key) */
 router.post('/', checkAdmin, async (req, res) => {
     try {
         const normalized = normalizePayload(req.body || {});
-
-        // validações mínimas alinhadas ao schema
         if (!normalized.nome || !normalized.dataAtendimento) {
             return res.status(400).json({ error: 'nome e dataAtendimento são obrigatórios' });
         }
-
         const created = await NursingRecord.create(normalized);
         res.status(201).json(created);
-    } catch (err) {
+    } catch {
         res.status(500).json({ error: 'Failed to create record' });
     }
 });
 
-/**
- * PATCH /records/:id
- * Acesso: Somente ADMIN
- * (Opcional: você pode também normalizar aqui, se receber campos “flat”)
- */
+/** GET /records/:id — detalhe */
+router.get('/:id', async (req, res) => {
+    try {
+        const rec = await NursingRecord.findById(req.params.id).lean();
+        if (!rec) return res.status(404).json({ error: 'Record not found' });
+        res.json(rec);
+    } catch {
+        res.status(500).json({ error: 'Failed to fetch record' });
+    }
+});
+
+/** PATCH /records/:id — somente admin */
 router.patch('/:id', checkAdmin, async (req, res) => {
     try {
-        const updated = await NursingRecord.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
+        const updated = await NursingRecord.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updated) return res.status(404).json({ error: 'Record not found' });
         res.json(updated);
-    } catch (err) {
+    } catch {
         res.status(500).json({ error: 'Failed to update record' });
     }
 });
 
-/**
- * DELETE /records/:id
- * Acesso: Somente ADMIN
- */
+/** DELETE /records/:id — somente admin */
 router.delete('/:id', checkAdmin, async (req, res) => {
     try {
         const deleted = await NursingRecord.findByIdAndDelete(req.params.id);
         if (!deleted) return res.status(404).json({ error: 'Record not found' });
         res.json({ ok: true });
-    } catch (err) {
+    } catch {
         res.status(500).json({ error: 'Failed to delete record' });
     }
 });

@@ -5,14 +5,15 @@ import cors from 'cors';
 import { connectDB } from './db.js';
 import { checkAccess } from './middleware/checkAccess.js';
 import recordsRouter from './routes/records.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 
-// Basic security & JSON
+// Segurança básica & JSON
 app.use(helmet());
 app.use(express.json());
 
-// CORS: ajuste os domínios do seu front
+// CORS — ajuste a origem do teu front
 const allowedOrigins = [
     // 'https://seu-front.vercel.app',
     // 'http://localhost:5173'
@@ -22,16 +23,19 @@ app.use(cors({
         if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return cb(null, true);
         return cb(new Error('Not allowed by CORS'));
     },
-    credentials: true
+    credentials: true,
 }));
 
-// Health check (sem exigir senha — útil para monitoramento interno)
+// Health (sem senha)
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-// A partir daqui, TODAS as rotas exigem a senha de acesso
+// LOGIN PÚBLICO (uma senha + checkbox)
+app.use('/auth', authRouter);
+
+// Daqui pra baixo, tudo exige x-access-password
 app.use(checkAccess);
 
-// Rotas de registros de enfermagem
+// Rotas de registros
 app.use('/records', recordsRouter);
 
 // Start
