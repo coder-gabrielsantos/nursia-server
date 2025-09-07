@@ -162,10 +162,15 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-/** PATCH /records/:id — somente admin */
+/** PATCH /records/:id — somente admin (agora normaliza antes de salvar) */
 router.patch('/:id', checkAdmin, async (req, res) => {
     try {
-        const updated = await NursingRecord.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const normalized = normalizePayload(req.body || {});
+        const updated = await NursingRecord.findByIdAndUpdate(
+            req.params.id,
+            { $set: normalized },
+            { new: true, runValidators: true }
+        );
         if (!updated) return res.status(404).json({ error: 'Record not found' });
         res.json(updated);
     } catch {
