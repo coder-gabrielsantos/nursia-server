@@ -9,19 +9,36 @@ import 'dotenv/config';
 
 const app = express();
 
-app.use(helmet());
-app.use(express.json({ limit: '15mb' }));
+const allowedOrigins = [
+    'https://nursia.vercel.app', // produção
+    'http://localhost:5173',     // dev (Vite)
+];
 
-app.use(cors({
-    origin: "*",
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+const corsOptions = {
+    origin: (origin, cb) => {
+        // permite tools/script locais (sem origin) e os domínios liberados
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
         'Content-Type',
         'Authorization',
         'x-access-password',
         'x-admin-key',
     ],
-}));
+    credentials: true,               // se for usar cookies/credenciais
+    optionsSuccessStatus: 204,       // evita 3xx/4xx em preflight
+    preflightContinue: false,
+};
+
+// CORS deve vir BEM no início
+app.use(cors(corsOptions));
+// Responde o preflight sem redirecionar
+app.options('*', cors(corsOptions));
+
+app.use(helmet());
+app.use(express.json({ limit: '15mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 app.use('/auth', authRouter);
@@ -29,5 +46,4 @@ app.use(checkAccess);
 app.use('/records', recordsRouter);
 app.use('/ai', aiRouter);
 
-// Export for Vercel serverless
-module.exports = app;
+export default app; // use ESM de ponta a ponta
