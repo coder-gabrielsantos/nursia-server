@@ -20,10 +20,15 @@ const allowedOrigins = [
 
 app.use(cors({
     origin(origin, cb) {
-        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-        return cb(new Error('Not allowed by CORS'));
+        if (!origin || allowedOrigins.includes(origin)) {
+            return cb(null, true);
+        }
+        return cb(null, false); // não lança erro, apenas bloqueia CORS
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 204,
 }));
 
 // Health sem autenticação
@@ -38,6 +43,7 @@ app.use(checkAccess);
 // Registros
 app.use('/records', recordsRouter);
 
+// IA
 app.use('/ai', aiRouter);
 
 export default app;
