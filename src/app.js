@@ -37,19 +37,11 @@ app.use(cors({
     optionsSuccessStatus: 204,
 }));
 
-// Health sem autenticação
 app.get('/health', (_req, res) => res.json({ ok: true }));
-
-// Auth pública (uma senha + checkbox admin)
 app.use('/auth', authRouter);
-
-// A partir daqui exige x-access-password
 app.use(checkAccess);
-
-// Registros
 app.use('/records', recordsRouter);
-
-// IA
 app.use('/ai', aiRouter);
 
-export default app;
+// Export for Vercel serverless
+module.exports = app;
