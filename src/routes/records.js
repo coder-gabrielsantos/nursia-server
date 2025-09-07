@@ -46,12 +46,24 @@ function normalizePayload(p = {}) {
         : undefined;
 
     const informante = (p.informante || p.informante?.tipo)
-        ? {
-            tipo: p.informante?.tipo
-                ? cap(p.informante.tipo)
-                : informanteTipoMap[p.informante] || undefined,
-            observacao: p.informante?.observacao ? cap(p.informante.observacao) : undefined,
-        }
+        ? (() => {
+            const map = {
+                paciente: 'Paciente',
+                membro_familia: 'Membro da Família',
+                amigo: 'Amigo',
+                outros: 'Outros',
+            };
+            const rawTipo = p.informante?.tipo ?? p.informante;
+            if (rawTipo == null) return undefined;
+            const t = String(rawTipo).trim();
+            const mapped = map[t] || map[t.toLowerCase()];
+            return {
+                tipo: mapped || t, // se não estiver no mapa, mantém capitalizado/trimado
+                observacao: p.informante?.observacao
+                    ? String(p.informante.observacao).trim()
+                    : undefined,
+            };
+        })()
         : undefined;
 
     const internacaoAnterior = p.internacaoAnterior && typeof p.internacaoAnterior === 'object'
