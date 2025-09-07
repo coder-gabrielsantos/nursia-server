@@ -26,12 +26,12 @@ router.post('/login', (req, res) => {
     const ADMIN = process.env.ADMIN_KEY;
 
     if (!ACCESS || !ADMIN) {
-        return res.status(500).json({ error: 'Server misconfigured (ACCESS_PASSWORD/ADMIN_KEY missing)' });
+        return res.status(500).json({ error: 'Servidor mal configurado (ACCESS_PASSWORD/ADMIN_KEY ausente)' });
     }
-    if (!password) return res.status(400).json({ error: 'password é obrigatório' });
+    if (!password) return res.status(400).json({ error: 'A senha é obrigatória' });
 
     if (asAdmin) {
-        if (!safeEqual(password, ADMIN)) return res.status(401).json({ error: 'Senha de admin inválida' });
+        if (!safeEqual(password, ADMIN)) return res.status(401).json({ error: 'Senha de administrador inválida' });
         return res.json({ role: 'admin', accessKey: ACCESS, adminKey: ADMIN });
     }
 
