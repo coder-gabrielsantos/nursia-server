@@ -23,11 +23,17 @@ app.use(cors({
         if (!origin || allowedOrigins.includes(origin)) {
             return cb(null, true);
         }
-        return cb(null, false); // não lança erro, apenas bloqueia CORS
+        return cb(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    // inclua todos os headers customizados que o front usa
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'x-access-password',
+        'x-admin-key',
+    ],
     optionsSuccessStatus: 204,
 }));
 
