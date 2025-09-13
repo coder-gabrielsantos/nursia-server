@@ -1,25 +1,26 @@
-import crypto from 'crypto';
+import { AuthCredential } from '../models/AuthCredential.js';
+import { checkPassword, timingSafeEqualStr } from '../utils/passwords.js';
 
-function safeEqual(a, b) {
-    const ab = Buffer.from(String(a || ''), 'utf8');
-    const bb = Buffer.from(String(b || ''), 'utf8');
-    if (ab.length !== bb.length) return false;
-    return crypto.timingSafeEqual(ab, bb);
-}
+export async function checkAdmin(req, res, next) {
+    try {
+        const provided = req.header('x-admin-key');
+        const expected = process.env.ADMIN_KEY;
+        if (!expected) return res.status(500).json({ error: 'Server is misconfigured: ADMIN_KEY missing' });
+        if (!provided) return res.status(403).json({ error: 'Admin key required' });
 
-/**
- * Permite apenas se x-admin-key corresponder a ADMIN_KEY
- */
-export function checkAdmin(req, res, next) {
-    const provided = req.header('x-admin-key');
-    const expected = process.env.ADMIN_KEY;
-
-    if (!expected) {
-        return res.status(500).json({ error: 'Server is misconfigured: ADMIN_KEY missing' });
-    }
-    if (!provided || !safeEqual(provided, expected)) {
+        // .env master
+        if (timingSafeEqualStr(provided, expected)) {
+            req.isAdmin = true;
+            return next();
+        }
+        // BD (única senha admin)
+        const cred = await AuthCredential.findOne({ role: 'admin' }).select('hash').lean();
+        if (cred && await checkPassword(provided, cred.hash)) {
+            req.isAdmin = true;
+            return next();
+        }
         return res.status(403).json({ error: 'Admin key required' });
+    } catch {
+        return res.status(500).json({ error: 'Admin check failed' });
     }
-    req.isAdmin = true;
-    next();
 }
