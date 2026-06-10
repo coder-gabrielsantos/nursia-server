@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { checkAdmin } from "../middleware/checkAdmin.js";
+import { checkRecordCreator } from "../middleware/checkRecordCreator.js";
 import { callOpenAiExtract } from "../services/openaiExtract.js";
 
 const router = Router();
 
-/** POST /AI/extract (headers: x-access-password + x-admin-key) */
-router.post("/extract", checkAdmin, async (req, res) => {
+/** POST /AI/extract (admin ou enfermeiro CAPS) */
+router.post("/extract", checkRecordCreator, async (req, res) => {
     try {
         const { image } = req.body || {};
         if (!image || typeof image !== "string" || !image.startsWith("data:image/")) {

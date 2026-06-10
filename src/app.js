@@ -26,6 +26,7 @@ const corsOptions = {
         'Authorization',
         'x-access-password',
         'x-admin-key',
+        'x-role-key',
     ],
     credentials: true,               // se for usar cookies/credenciais
     optionsSuccessStatus: 204,       // evita 3xx/4xx em preflight

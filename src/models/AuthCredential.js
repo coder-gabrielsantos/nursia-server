@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 
 const AuthCredentialSchema = new mongoose.Schema({
-    role: { type: String, enum: ['nurse', 'admin'], required: true, unique: true },
+    role: {
+        type: String,
+        enum: ['admin', 'enfermeiro-caps', 'enfermeiro-unidade', 'nurse'],
+        required: true,
+        unique: true
+    },
     hash: { type: String, required: true },
 }, { timestamps: true });
-
-AuthCredentialSchema.index({ role: 1 }, { unique: true });
 
 export const AuthCredential = mongoose.model('AuthCredential', AuthCredentialSchema);

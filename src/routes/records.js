@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { NursingRecord } from '../models/NursingRecord.js';
 import { checkAdmin } from '../middleware/checkAdmin.js';
+import { checkRecordCreator } from '../middleware/checkRecordCreator.js';
 
 const router = Router();
 
@@ -275,7 +276,7 @@ router.get('/', async (req, res) => {
 });
 
 /** POST /records — somente admin (x-admin-key) */
-router.post('/', checkAdmin, async (req, res) => {
+router.post('/', checkRecordCreator, async (req, res) => {
     try {
         const normalized = normalizePayload(req.body || {});
         if (!normalized.nome || !normalized.dataAtendimento) {
