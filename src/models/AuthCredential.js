@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const AuthCredentialSchema = new mongoose.Schema({
     role: {
         type: String,
-        enum: ['admin', 'enfermeiro-caps', 'enfermeiro-unidade', 'nurse'],
+        enum: ['enfermeiro-caps', 'enfermeiro-unidade', 'nurse'],
         required: true,
         unique: true
     },

@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { NursingRecord } from '../models/NursingRecord.js';
-import { checkAdmin } from '../middleware/checkAdmin.js';
 import { checkRecordCreator } from '../middleware/checkRecordCreator.js';
 
 const router = Router();
@@ -36,7 +35,7 @@ function normalizePayload(p = {}) {
     const recreacaoMap = { '3x_semana': 'Três vezes/semana', '>3x_semana': 'Mais de três vezes/semana' };
     const moradiaTipoMap = { propria: 'Própria', cedida: 'Cedida', alugada: 'Alugada' };
 
-    // --- Identificação / Anamnese ---
+    // --- Etapa 1: Avaliação ---
     const religiao = p.religiao
         ? (typeof p.religiao === 'string'
             ? { nome: cap(p.religiao), praticante: false }
@@ -254,6 +253,12 @@ function normalizePayload(p = {}) {
         glicemiaCapilar: cap(p.glicemiaCapilar),
         paSistolica: num(p.paSistolica),
         paDiastolica: num(p.paDiastolica),
+
+        // Demais etapas do processo de enfermagem
+        diagnosticoEnfermagem: cap(p.diagnosticoEnfermagem),
+        planejamento: cap(p.planejamento),
+        implementacao: cap(p.implementacao),
+        evolucao: cap(p.evolucao),
     };
 
     // remove undefined para não sobrescrever com campos vazios
@@ -275,7 +280,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-/** POST /records — somente admin (x-admin-key) */
+/** POST /records — somente Enfermeiro CAPS */
 router.post('/', checkRecordCreator, async (req, res) => {
     try {
         const normalized = normalizePayload(req.body || {});
@@ -300,8 +305,8 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-/** PATCH /records/:id — somente admin (agora normaliza antes de salvar) */
-router.patch('/:id', checkAdmin, async (req, res) => {
+/** PATCH /records/:id — somente Enfermeiro CAPS */
+router.patch('/:id', checkRecordCreator, async (req, res) => {
     try {
         const normalized = normalizePayload(req.body || {});
         const updated = await NursingRecord.findByIdAndUpdate(
@@ -316,8 +321,8 @@ router.patch('/:id', checkAdmin, async (req, res) => {
     }
 });
 
-/** DELETE /records/:id — somente admin */
-router.delete('/:id', checkAdmin, async (req, res) => {
+/** DELETE /records/:id — somente Enfermeiro CAPS */
+router.delete('/:id', checkRecordCreator, async (req, res) => {
     try {
         const deleted = await NursingRecord.findByIdAndDelete(req.params.id);
         if (!deleted) return res.status(404).json({ error: 'Registro não encontrado' });

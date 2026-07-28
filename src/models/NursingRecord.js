@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
  */
 const NursingRecordSchema = new mongoose.Schema(
     {
-        // ---- Identificação / Anamnese ----
+        // ---- Etapa 1: Avaliação ----
         nome: { type: String, required: true },
         dataAtendimento: { type: String, required: true },
         naturalidade: String,
@@ -112,6 +112,12 @@ const NursingRecordSchema = new mongoose.Schema(
         glicemiaCapilar: String,
         paSistolica: Number,
         paDiastolica: Number,
+
+        // ---- Demais etapas do processo de enfermagem ----
+        diagnosticoEnfermagem: String,
+        planejamento: String,
+        implementacao: String,
+        evolucao: String,
     },
     { timestamps: true }
 );

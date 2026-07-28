@@ -25,7 +25,6 @@ const corsOptions = {
         'Content-Type',
         'Authorization',
         'x-access-password',
-        'x-admin-key',
         'x-role-key',
     ],
     credentials: true,               // se for usar cookies/credenciais
