@@ -9,19 +9,30 @@ const UNIDADE_ROLE = 'enfermeiro-unidade';
 const VALID_ROLES = [CAPS_ROLE, UNIDADE_ROLE];
 
 async function matchRolePassword(role, provided) {
-    const masterByRole = {
-        [CAPS_ROLE]: process.env.ENFERMEIRO_CAPS_PASSWORD || process.env.CAPS_PASSWORD,
-        [UNIDADE_ROLE]: process.env.ENFERMEIRO_UNIDADE_PASSWORD || process.env.ACCESS_PASSWORD,
-        nurse: process.env.ENFERMEIRO_UNIDADE_PASSWORD || process.env.ACCESS_PASSWORD,
+    const mastersByRole = {
+        // ADMIN_KEY é mantida apenas como credencial legada do perfil que alimentava os prontuários.
+        [CAPS_ROLE]: [
+            process.env.ENFERMEIRO_CAPS_PASSWORD,
+            process.env.CAPS_PASSWORD,
+            process.env.ADMIN_KEY,
+        ],
+        // ACCESS_PASSWORD era a senha de consulta antes da separação dos perfis.
+        [UNIDADE_ROLE]: [
+            process.env.ENFERMEIRO_UNIDADE_PASSWORD,
+            process.env.ACCESS_PASSWORD,
+        ],
     };
 
-    if (timingSafeEqualStr(provided, masterByRole[role])) return true;
+    if ((mastersByRole[role] || []).some((master) => master && timingSafeEqualStr(provided, master))) {
+        return true;
+    }
 
     const cred = await AuthCredential.findOne({ role }).select('hash').lean();
     if (cred && await checkPassword(provided, cred.hash)) return true;
 
-    if (role === UNIDADE_ROLE) {
-        const legacyCred = await AuthCredential.findOne({ role: 'nurse' }).select('hash').lean();
+    const legacyRole = role === CAPS_ROLE ? 'admin' : role === UNIDADE_ROLE ? 'nurse' : null;
+    if (legacyRole) {
+        const legacyCred = await AuthCredential.findOne({ role: legacyRole }).select('hash').lean();
         if (legacyCred && await checkPassword(provided, legacyCred.hash)) return true;
     }
 
@@ -32,11 +43,9 @@ router.post('/login', async (req, res) => {
     try {
         const { password } = req.body || {};
         const ACCESS = process.env.ACCESS_PASSWORD;
-        const CAPS = process.env.ENFERMEIRO_CAPS_PASSWORD || process.env.CAPS_PASSWORD;
-        const UNIDADE = process.env.ENFERMEIRO_UNIDADE_PASSWORD || process.env.ACCESS_PASSWORD;
 
-        if (!ACCESS || !CAPS || !UNIDADE) {
-            return res.status(500).json({ error: 'Servidor mal configurado: senhas de acesso ausentes no .env' });
+        if (!ACCESS) {
+            return res.status(500).json({ error: 'Servidor mal configurado: senha de acesso ausente no .env' });
         }
         if (!password) return res.status(400).json({ error: 'A senha e obrigatoria' });
 

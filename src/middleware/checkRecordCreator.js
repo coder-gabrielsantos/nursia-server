@@ -4,13 +4,17 @@ import { checkPassword, timingSafeEqualStr } from '../utils/passwords.js';
 export async function checkRecordCreator(req, res, next) {
     try {
         const roleKey = req.header('x-role-key');
-        const expectedCaps = process.env.ENFERMEIRO_CAPS_PASSWORD || process.env.CAPS_PASSWORD;
+        const capsPasswords = [
+            process.env.ENFERMEIRO_CAPS_PASSWORD,
+            process.env.CAPS_PASSWORD,
+            process.env.ADMIN_KEY,
+        ].filter(Boolean);
 
-        if (!expectedCaps) {
+        if (!capsPasswords.length) {
             return res.status(500).json({ error: 'Server is misconfigured: CAPS password missing' });
         }
 
-        if (timingSafeEqualStr(roleKey, expectedCaps)) {
+        if (capsPasswords.some((password) => timingSafeEqualStr(roleKey, password))) {
             req.role = 'enfermeiro-caps';
             req.canManageRecords = true;
             return next();
@@ -18,6 +22,13 @@ export async function checkRecordCreator(req, res, next) {
 
         const capsCred = await AuthCredential.findOne({ role: 'enfermeiro-caps' }).select('hash').lean();
         if (capsCred && await checkPassword(roleKey, capsCred.hash)) {
+            req.role = 'enfermeiro-caps';
+            req.canManageRecords = true;
+            return next();
+        }
+
+        const legacyAdminCred = await AuthCredential.findOne({ role: 'admin' }).select('hash').lean();
+        if (legacyAdminCred && await checkPassword(roleKey, legacyAdminCred.hash)) {
             req.role = 'enfermeiro-caps';
             req.canManageRecords = true;
             return next();
