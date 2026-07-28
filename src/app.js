@@ -24,7 +24,6 @@ const corsOptions = {
     allowedHeaders: [
         'Content-Type',
         'Authorization',
-        'x-access-password',
         'x-role-key',
     ],
     credentials: true,               // se for usar cookies/credenciais
