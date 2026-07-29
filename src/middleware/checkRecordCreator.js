@@ -1,16 +1,10 @@
-import { timingSafeEqualStr } from '../utils/passwords.js';
+import { CAPS_ROLE, matchesRolePassword } from '../services/authCredentials.js';
 
 export async function checkRecordCreator(req, res, next) {
     try {
         const roleKey = req.header('x-role-key');
-        const capsPassword = process.env.ENFERMEIRO_CAPS_PASSWORD;
-
-        if (!capsPassword) {
-            return res.status(500).json({ error: 'Server is misconfigured: CAPS password missing' });
-        }
-
-        if (timingSafeEqualStr(roleKey, capsPassword)) {
-            req.role = 'enfermeiro-caps';
+        if (await matchesRolePassword(CAPS_ROLE, roleKey)) {
+            req.role = CAPS_ROLE;
             req.canManageRecords = true;
             return next();
         }
