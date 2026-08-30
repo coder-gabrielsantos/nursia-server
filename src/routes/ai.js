@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { checkRecordCreator } from "../middleware/checkRecordCreator.js";
-import { callOpenAiExtract } from "../services/openaiExtract.js";
+import { callWorkersAiExtract } from "../services/workersAiExtract.js";
 
 const router = Router();
 
@@ -11,7 +11,7 @@ router.post("/extract", checkRecordCreator, async (req, res) => {
         if (!image || typeof image !== "string" || !image.startsWith("data:image/")) {
             return res.status(400).json({ error: "Imagem inválida." });
         }
-        const extracted = await callOpenAiExtract({ imageDataUrl: image });
+        const extracted = await callWorkersAiExtract({ imageDataUrl: image });
         return res.json({ data: extracted });
     } catch (e) {
         console.error(e);
